@@ -1,0 +1,32 @@
+name: Check Spotx for the latest Spotify
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Run Spotx
+      shell: powershell
+      run: |
+        $jsonUrl = "https://raw.githubusercontent.com/amd64fox/LoaderSpot/main/versions.json"
+        $resp = Invoke-RestMethod -Uri $jsonUrl
+
+        # Get a link to the x86 installer for the first version
+        $firstVersion = $resp.PSObject.Properties.Name | Select-Object -First 1
+        $x64InstallerUrl = $resp.$firstVersion.links.win.x64
+
+        # Regex to find the desired part of the link
+        $regex = [regex]::Match($x64InstallerUrl, "spotify_installer-(.+?)\.exe")
+        $version = $regex.Groups[1].Value
+        
+        # Incoming parameters
+        $parametrs = '-Verbose -new_theme -v $version -sp-over -cache_limit 1000 -block_update_on -lyrics_stat spotify -urlform_goofy "https://docs.google.com/forms/formResponse" -idbox_goofy "9999999" -podcasts_off -adsections_off -lyrics_block'
+        
+        # Run Spotx
+        iex "& { $(iwr -useb 'https://raw.githubusercontent.com/SpotX-Official/SpotX/refs/heads/main/run.ps1') } $parametrs" 
